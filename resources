@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: A sample template
+Resources:
+
+  AmaraVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+      - Key: name
+        Value: AmaraVPC
+
+  AmaraInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+       - Key: name
+         Value: AmaraIGW
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+         Ref: AmaraVPC
+      InternetGatewayId:
+         Ref: AmaraInternetGateway
+
+  AmarapubSubnet:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: AmaraVPC
+        CidrBlock: 10.0.0.0/24
+        AvailabilityZone: "us-east-1a"
+        MapPublicIpOnLaunch:  "true"
+        Tags:
+        - Key: name
+          Value: AmarapubSubnet
+
+  AmarapvtSubnet:
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: AmaraVPC
+        CidrBlock: 10.0.1.0/24
+        AvailabilityZone: "us-east-1b"
+        MapPublicIpOnLaunch:  "false"
+        Tags:
+        - Key: name
+          Value: AmarapvtSubnet
+
+  AmarapubRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId:  
+          Ref: AmaraVPC
+        Tags:
+        - Key: name
+          Value: AmaraPUBRT
+
+  AmarapvtRouteTable:
+      Type: AWS::EC2::RouteTable
+      Properties:
+        VpcId:  
+          Ref: AmaraVPC
+        Tags:
+        - Key: name
+          Value: AmaraPVTRT
+
+  AmarapubSubnetRouteTableAssociation:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+        SubnetId:
+          Ref: AmarapubSubnet
+        RouteTableId:
+          Ref: AmarapubRouteTable
+
+  AmarapvtSubnetRouteTableAssociation:
+     Type: AWS::EC2::SubnetRouteTableAssociation
+     Properties:
+        SubnetId:
+          Ref: AmarapvtSubnet
+        RouteTableId:
+          Ref: AmarapvtRouteTable
+
+  AmaraRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AmaraInternetGateway
+    Properties:
+       RouteTableId:
+         Ref: AmarapubRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId:
+         Ref: AmaraInternetGateway
+
+  AmaraSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId: 
+         Ref: AmaraVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
